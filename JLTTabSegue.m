@@ -44,7 +44,7 @@ static NSException *JLT_MalformedIdentifier(NSString *identifier)
     range = [identifier rangeOfString:@" " options:0 range:NSMakeRange(location, restOfIdentifier)];
 
     if (range.location == NSNotFound)
-        range = NSMakeRange(location, restOfIdentifier);
+        range = NSMakeRange(identifier.length, 0);
 
     NSUInteger length = range.location - location;
 
