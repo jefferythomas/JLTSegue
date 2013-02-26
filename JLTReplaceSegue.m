@@ -1,20 +1,41 @@
 #import "JLTReplaceSegue.h"
 #import <objc/runtime.h>
 
+static NSException *JLT_ViewControllerNotInNavigationController(UIViewController *viewController)
+{
+    NSString *reasonFormat = @"The view controller %@ is not in a navigation controller";
+    return [NSException exceptionWithName:@"ViewControllerNotInNavigationController"
+                                   reason:[NSString stringWithFormat:reasonFormat, viewController]
+                                 userInfo:nil];
+}
+
 @interface UIViewController (JLTReplaceSegue_Private)
+
 @property (strong, nonatomic) NSNumber *JLT_stackSizeOfReplacementSegue;
+
 @end
 
 @implementation JLTReplaceSegue
+
+- (id)initWithIdentifier:(NSString *)identifier
+                  source:(UIViewController *)source
+             destination:(UIViewController *)destination
+{
+    if (!source.navigationController)
+        @throw JLT_ViewControllerNotInNavigationController(source);
+
+    return [super initWithIdentifier:identifier source:source destination:destination];
+}
 
 - (void)perform
 {
     UIViewController *source = self.sourceViewController;
     UIViewController *destination = self.destinationViewController;
 
-    NSAssert(source.identifierOfFinalReplacementSegue, @"ReplaceSegue must have final identifier");
+    if (!source.identifierOfFinalReplacementSegue)
+        source.identifierOfFinalReplacementSegue = self.identifier;
 
-    if ([self.identifier isEqualToString:source.identifierOfFinalReplacementSegue]) {
+    if ([self JLT_isFinalIdentifier:source.identifierOfFinalReplacementSegue]) {
         [source.navigationController setViewControllers:[self JLT_stackAfterPush] animated:YES];
     } else {
         destination.JLT_stackSizeOfReplacementSegue = source.JLT_stackSizeOfReplacementSegue;
@@ -34,6 +55,14 @@
     return [[stack subarrayWithRange:NSMakeRange(0, size)] arrayByAddingObject:final];
 }
 
+- (BOOL)JLT_isFinalIdentifier:(NSString *)finalIdentifier
+{
+    if (!finalIdentifier)
+        return YES;
+
+    return [self.identifier isEqualToString:finalIdentifier];
+}
+
 @end
 
 @implementation UIViewController (JLTReplaceSegue)
@@ -50,7 +79,7 @@ static char JLT_identifierKey;
     objc_setAssociatedObject(self, &JLT_identifierKey, identifier, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     if (!self.JLT_stackSizeOfReplacementSegue)
-        self.JLT_stackSizeOfReplacementSegue = @(self.navigationController.viewControllers.count);
+        self.JLT_stackSizeOfReplacementSegue = @(self.navigationController.viewControllers.count - 1);
 }
 
 @end
