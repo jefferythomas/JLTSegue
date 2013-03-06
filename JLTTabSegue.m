@@ -2,12 +2,36 @@
 
 @implementation JLTTabSegue
 
++ (NSRegularExpression *)indexOfDestinationViewControllerRegularExpression
+{
+    static NSRegularExpression *result = nil;
+
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        result = [NSRegularExpression regularExpressionWithPattern:@"tab ?([0-9]+)"
+                                                           options:NSRegularExpressionCaseInsensitive
+                                                             error:nil];
+    });
+
+    return result;
+}
+
+#pragma mark UIStoryboardSegue
+
 - (id)initWithIdentifier:(NSString *)identifier
                   source:(UIViewController *)source
              destination:(UIViewController *)destination
 {
-    NSUInteger tabIndex = [self JLT_tabIndexForIdentifier:identifier];
-    UIViewController *mydest = source.tabBarController.viewControllers[tabIndex];
+    NSUInteger index = NSNotFound;
+
+    if ([source respondsToSelector:@selector(indexOfDestinationViewControllerForTabSegueIdentifier:)])
+        index = [(id)source indexOfDestinationViewControllerForTabSegueIdentifier:identifier];
+    if (index == NSNotFound)
+        index = [self indexOfDestinationViewControllerForTabSegueIdentifier:identifier];
+    if (index == NSNotFound)
+        @throw [[self class] JLT_malformedTabSegueIdentifierExceptionWithIdentifier:identifier];
+
+    UIViewController *mydest = source.tabBarController.viewControllers[index];
 
     return [super initWithIdentifier:identifier source:source destination:mydest];
 }
@@ -18,38 +42,33 @@
     source.tabBarController.selectedViewController = self.destinationViewController;
 }
 
+#pragma mark JLTTabSegueViewControllerChooser
+
+- (NSUInteger)indexOfDestinationViewControllerForTabSegueIdentifier:(NSString *)identifier
+{
+    NSRegularExpression *regex = [[self class] indexOfDestinationViewControllerRegularExpression];
+    NSTextCheckingResult *match = [regex firstMatchInString:identifier options:0 range:NSMakeRange(0, [identifier length])];
+
+    if (!match)
+        return NSNotFound;
+
+    NSRange range = [match rangeAtIndex:1];
+
+    if (range.location == NSNotFound)
+        return NSNotFound;
+
+    NSString *indexString = [identifier substringWithRange:range];
+    return [indexString integerValue];
+}
+
 #pragma mark Private
 
-static NSException *JLT_MalformedIdentifier(NSString *identifier)
++ (NSException *)JLT_malformedTabSegueIdentifierExceptionWithIdentifier:(NSString *)identifier
 {
     NSString *reasonFormat = @"The segue identifier \"%@\" does not contain a tab";
     return [NSException exceptionWithName:@"MalformedTabSegueIdentifier"
                                    reason:[NSString stringWithFormat:reasonFormat, identifier]
                                  userInfo:nil];
-}
-
-- (NSUInteger)JLT_tabIndexForIdentifier:(NSString *)identifier
-{
-    NSRange range = [identifier rangeOfString:@"Tab " options:NSCaseInsensitiveSearch];
-
-    if (range.location == NSNotFound)
-        @throw JLT_MalformedIdentifier(identifier);
-
-    if (range.location > 0 && isalnum([identifier characterAtIndex:range.location - 1]))
-        @throw JLT_MalformedIdentifier(identifier);
-
-    NSUInteger location = range.location + range.length;
-    NSUInteger restOfIdentifier = identifier.length - location;
-
-    range = [identifier rangeOfString:@" " options:0 range:NSMakeRange(location, restOfIdentifier)];
-
-    if (range.location == NSNotFound)
-        range = NSMakeRange(identifier.length, 0);
-
-    NSUInteger length = range.location - location;
-
-    NSString *tabIndexString = [identifier substringWithRange:NSMakeRange(location, length)];
-    return tabIndexString.integerValue;
 }
 
 @end
