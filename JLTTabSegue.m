@@ -8,7 +8,7 @@
 
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        result = [NSRegularExpression regularExpressionWithPattern:@"tab ?([0-9]+)"
+        result = [NSRegularExpression regularExpressionWithPattern:@"\\btab[\\W-]*([0-9]+\\b)"
                                                            options:NSRegularExpressionCaseInsensitive
                                                              error:nil];
     });
