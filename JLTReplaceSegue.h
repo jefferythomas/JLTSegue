@@ -1,11 +1,13 @@
 #import <UIKit/UIKit.h>
 
-@interface JLTReplaceSegue : UIStoryboardSegue
+extern const NSUInteger JLTReplaceSegueNotReplaced;
+
+@protocol JLTReplaceSegueNavigationStackManipulator <NSObject>
+
+- (NSUInteger)numberOfViewControllersReplacedByReplaceSegue:(UIStoryboardSegue *)segue;
 
 @end
 
-@interface UIViewController (JLTReplaceSegue)
-
-@property (strong, nonatomic) NSString *identifierOfFinalReplacementSegue;
+@interface JLTReplaceSegue : UIStoryboardSegue <JLTReplaceSegueNavigationStackManipulator>
 
 @end

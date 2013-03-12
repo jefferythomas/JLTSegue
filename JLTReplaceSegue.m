@@ -9,11 +9,7 @@ static NSException *JLT_ViewControllerNotInNavigationController(UIViewController
                                  userInfo:nil];
 }
 
-@interface UIViewController (JLTReplaceSegue_Private)
-
-@property (strong, nonatomic) NSNumber *JLT_stackSizeOfReplacementSegue;
-
-@end
+const NSUInteger JLTReplaceSegueNotReplaced = NSNotFound;
 
 @implementation JLTReplaceSegue
 
@@ -29,73 +25,44 @@ static NSException *JLT_ViewControllerNotInNavigationController(UIViewController
 
 - (void)perform
 {
-    UIViewController *source = self.sourceViewController;
-    UIViewController *destination = self.destinationViewController;
+    id source = self.sourceViewController;
+    id destination = self.destinationViewController;
+    UINavigationController *navController = [source navigationController];
 
-    if (!source.identifierOfFinalReplacementSegue)
-        source.identifierOfFinalReplacementSegue = self.identifier;
+    NSUInteger numberReplaced = JLTReplaceSegueNotReplaced;
 
-    if ([self JLT_isFinalIdentifier:source.identifierOfFinalReplacementSegue]) {
-        [source.navigationController setViewControllers:[self JLT_stackAfterPush] animated:YES];
-    } else {
-        destination.JLT_stackSizeOfReplacementSegue = source.JLT_stackSizeOfReplacementSegue;
-        destination.identifierOfFinalReplacementSegue = source.identifierOfFinalReplacementSegue;
-        [source.navigationController pushViewController:destination animated:YES];
-    }
+    if ([destination respondsToSelector:@selector(numberOfViewControllersReplacedByReplaceSegue:)])
+        numberReplaced = [destination numberOfViewControllersReplacedByReplaceSegue:self];
+
+    if (numberReplaced == JLTReplaceSegueNotReplaced)
+        if ([source respondsToSelector:@selector(numberOfViewControllersReplacedByReplaceSegue:)])
+            numberReplaced = [source numberOfViewControllersReplacedByReplaceSegue:self];
+
+    if (numberReplaced == JLTReplaceSegueNotReplaced)
+        numberReplaced = [self numberOfViewControllersReplacedByReplaceSegue:self];
+
+    if (numberReplaced == JLTReplaceSegueNotReplaced || numberReplaced == 0)
+        [navController pushViewController:destination animated:YES];
+    else
+        [navController setViewControllers:[self JLT_stackAfterNumberReplaced:numberReplaced] animated:YES];
+}
+
+#pragma mark JLTReplaceSegueNavigationStackManipulator
+
+- (NSUInteger)numberOfViewControllersReplacedByReplaceSegue:(UIStoryboardSegue *)segue
+{
+    return 1;
 }
 
 #pragma mark Private
 
-- (NSArray *)JLT_stackAfterPush
+- (NSArray *)JLT_stackAfterNumberReplaced:(NSUInteger)numberReplaced
 {
-    NSUInteger size = [[self.sourceViewController JLT_stackSizeOfReplacementSegue] unsignedIntegerValue];
     NSArray *stack = [[self.sourceViewController navigationController] viewControllers];
+    NSUInteger size = numberReplaced > [stack count] ? 0 : [stack count] - numberReplaced;
     id final = self.destinationViewController;
 
     return [[stack subarrayWithRange:NSMakeRange(0, size)] arrayByAddingObject:final];
-}
-
-- (BOOL)JLT_isFinalIdentifier:(NSString *)finalIdentifier
-{
-    if (!finalIdentifier)
-        return YES;
-
-    return [self.identifier isEqualToString:finalIdentifier];
-}
-
-@end
-
-@implementation UIViewController (JLTReplaceSegue)
-
-static char JLT_identifierKey;
-
-- (NSString *)identifierOfFinalReplacementSegue
-{
-    return objc_getAssociatedObject(self, &JLT_identifierKey);
-}
-
-- (void)setIdentifierOfFinalReplacementSegue:(NSString *)identifier
-{
-    objc_setAssociatedObject(self, &JLT_identifierKey, identifier, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
-    if (!self.JLT_stackSizeOfReplacementSegue)
-        self.JLT_stackSizeOfReplacementSegue = @(self.navigationController.viewControllers.count - 1);
-}
-
-@end
-
-@implementation UIViewController (JLTReplaceSegue_Private)
-
-static char JLT_stackSizeKey;
-
-- (NSNumber *)JLT_stackSizeOfReplacementSegue
-{
-    return objc_getAssociatedObject(self, &JLT_stackSizeKey);
-}
-
-- (void)setJLT_stackSizeOfReplacementSegue:(NSNumber *)stackSize
-{
-    objc_setAssociatedObject(self, &JLT_stackSizeKey, stackSize, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 @end
