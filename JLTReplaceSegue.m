@@ -9,7 +9,7 @@ static NSException *JLT_ViewControllerNotInNavigationController(UIViewController
                                  userInfo:nil];
 }
 
-const NSUInteger JLTReplaceSegueNotReplaced = NSNotFound;
+const NSUInteger JLTReplaceSeguePass = NSNotFound;
 
 @implementation JLTReplaceSegue
 
@@ -29,19 +29,9 @@ const NSUInteger JLTReplaceSegueNotReplaced = NSNotFound;
     id destination = self.destinationViewController;
     UINavigationController *navController = [source navigationController];
 
-    NSUInteger numberReplaced = JLTReplaceSegueNotReplaced;
+    NSUInteger numberReplaced = [self JLT_determineNumberReplacedWithSource:source andDestination:destination];
 
-    if ([destination respondsToSelector:@selector(numberOfViewControllersReplacedByReplaceSegue:)])
-        numberReplaced = [destination numberOfViewControllersReplacedByReplaceSegue:self];
-
-    if (numberReplaced == JLTReplaceSegueNotReplaced)
-        if ([source respondsToSelector:@selector(numberOfViewControllersReplacedByReplaceSegue:)])
-            numberReplaced = [source numberOfViewControllersReplacedByReplaceSegue:self];
-
-    if (numberReplaced == JLTReplaceSegueNotReplaced)
-        numberReplaced = [self numberOfViewControllersReplacedByReplaceSegue:self];
-
-    if (numberReplaced == JLTReplaceSegueNotReplaced || numberReplaced == 0)
+    if (numberReplaced == 0)
         [navController pushViewController:destination animated:YES];
     else
         [navController setViewControllers:[self JLT_stackAfterNumberReplaced:numberReplaced] animated:YES];
@@ -49,12 +39,32 @@ const NSUInteger JLTReplaceSegueNotReplaced = NSNotFound;
 
 #pragma mark JLTReplaceSegueNavigationStackManipulator
 
-- (NSUInteger)numberOfViewControllersReplacedByReplaceSegue:(UIStoryboardSegue *)segue
+- (NSUInteger)numberOfViewControllersReplacedBySegue:(UIStoryboardSegue *)segue
 {
     return 1;
 }
 
 #pragma mark Private
+
+- (NSUInteger)JLT_determineNumberReplacedWithSource:(id)source andDestination:(id)destination
+{
+    NSUInteger numberReplaced = JLTReplaceSeguePass;
+
+    if ([destination respondsToSelector:@selector(numberOfViewControllersReplacedBySegue:)])
+        numberReplaced = [destination numberOfViewControllersReplacedBySegue:self];
+
+    if (numberReplaced == JLTReplaceSeguePass)
+        if ([source respondsToSelector:@selector(numberOfViewControllersReplacedBySegue:)])
+            numberReplaced = [source numberOfViewControllersReplacedBySegue:self];
+
+    if (numberReplaced == JLTReplaceSeguePass)
+        numberReplaced = [self numberOfViewControllersReplacedBySegue:self];
+
+    if (numberReplaced == JLTReplaceSeguePass)
+        return 0;
+
+    return numberReplaced;
+}
 
 - (NSArray *)JLT_stackAfterNumberReplaced:(NSUInteger)numberReplaced
 {

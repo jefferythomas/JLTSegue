@@ -1,10 +1,10 @@
 #import <UIKit/UIKit.h>
 
-extern const NSUInteger JLTReplaceSegueNotReplaced;
+extern const NSUInteger JLTReplaceSeguePass;
 
 @protocol JLTReplaceSegueNavigationStackManipulator <NSObject>
 
-- (NSUInteger)numberOfViewControllersReplacedByReplaceSegue:(UIStoryboardSegue *)segue;
+- (NSUInteger)numberOfViewControllersReplacedBySegue:(UIStoryboardSegue *)segue;
 
 @end
 
