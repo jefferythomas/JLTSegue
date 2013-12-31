@@ -1,5 +1,5 @@
 //
-//  JLTTabSegue.h
+//  JLTTabSegue.m
 //  JLTSegue
 //
 //  Created by Jeffery Thomas on 2/20/13.
@@ -24,9 +24,8 @@
 
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        result = [NSRegularExpression regularExpressionWithPattern:@"\\btab[ -_]*([0-9]+)\\b"
-                                                           options:NSRegularExpressionCaseInsensitive
-                                                             error:nil];
+        static NSString *pattern = @"(?:^|[- _])[Tt][Aa][Bb][- _]*([0-9]+)(?:[- _]|$)";
+        result = [NSRegularExpression regularExpressionWithPattern:pattern options:0 error:nil];
     });
 
     return result;
@@ -63,7 +62,8 @@
 - (NSUInteger)indexOfDestinationViewControllerForTabSegueIdentifier:(NSString *)identifier
 {
     NSRegularExpression *regex = [[self class] indexOfDestinationViewControllerRegularExpression];
-    NSTextCheckingResult *match = [regex firstMatchInString:identifier options:0 range:NSMakeRange(0, [identifier length])];
+    NSTextCheckingResult *match = [regex firstMatchInString:identifier options:0
+                                                      range:NSMakeRange(0, [identifier length])];
 
     if (!match)
         return NSNotFound;

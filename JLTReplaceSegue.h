@@ -15,15 +15,18 @@
 //
 
 #import <UIKit/UIKit.h>
+@class JLTReplaceSegue;
 
-extern const NSUInteger JLTReplaceSeguePass;
+#define JLTReplaceSeguePass NSNotFound
 
 @protocol JLTReplaceSegueNavigationStackManipulator <NSObject>
 
-- (NSUInteger)numberOfViewControllersReplacedBySegue:(UIStoryboardSegue *)segue;
+- (NSUInteger)numberOfViewControllersPoppedByReplaceSegue:(JLTReplaceSegue *)replaceSegue;
 
 @end
 
 @interface JLTReplaceSegue : UIStoryboardSegue <JLTReplaceSegueNavigationStackManipulator>
+
++ (NSRegularExpression *)numberOfViewControllersToPopRegularExpression;
 
 @end
